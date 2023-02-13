@@ -55,6 +55,22 @@ const discordCommands: SlashCommandBuilder[] = [
     )
     .setName("options")
     .setDescription("게임 설정을 변경해요"),
+  new SlashCommandBuilder()
+    .addStringOption((s) =>
+      s
+        .setName("pre")
+        .setRequired(true)
+        .setDescription("프리셋")
+        .addChoices({ name: "기본", value: "default" })
+        .addChoices({ name: "테라 리그", value: "tetra league" })
+        .addChoices({ name: "클래식", value: "classic" })
+        .addChoices({ name: "아케이드", value: "arcade" })
+        .addChoices({ name: "강제 딜레이", value: "enforced delays" })
+        .addChoices({ name: "퀵플레이", value: "quickplay" })
+        .addChoices({ name: "5x5", value: "__5x5" })
+    )
+    .setName("preset")
+    .setDescription("게임 프리셋을 지정해요."),
 ];
 
 (async function () {
@@ -239,6 +255,43 @@ const discordCommands: SlashCommandBuilder[] = [
               case "gi":
                 return await rs(gi, val);
             }
+            return;
+          case "preset":
+            if (!seleniumBooted) {
+              interaction.reply("아직 Tetr.io를 키고 있어요.");
+              return;
+            }
+
+            const pres = interaction.options.getString("pre") || "";
+            await interaction.reply("프리셋을 설정했어요.");
+            if (pres.startsWith("__")) {
+              await driver.executeScript(
+                `document.getElementById("game-presets").click(); document.querySelector('#list_request_scroller > div[data-id="default"]').click();`
+              );
+              switch (pres) {
+                case "__5x5":
+                  await driver.executeScript(
+                    `document.querySelector("${bw
+                      .replace('"]', '\\"]')
+                      .replace('"', '\\"')}").value = '';`
+                  );
+                  await driver.executeScript(
+                    `document.querySelector("${bh
+                      .replace('"]', '\\"]')
+                      .replace('"', '\\"')}").value = '';`
+                  );
+                  await driver.findElement(By.css(bw)).sendKeys("5");
+                  await driver.findElement(By.css(bh)).sendKeys("5");
+
+                  await driver.executeScript(
+                    `setTimeout(() => {document.getElementById("room_opts_save").click()}, 500);`
+                  );
+              }
+              return;
+            }
+            await driver.executeScript(
+              `document.getElementById("game-presets").click(); document.querySelector('#list_request_scroller > div[data-id="${pres}"]').click();`
+            );
             return;
           default:
             return;
